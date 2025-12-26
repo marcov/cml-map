@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
-import stationsDataStatic from './stations.json';
 
 // Fix for default marker icon not appearing
 import L from 'leaflet';
@@ -17,51 +16,77 @@ L.Icon.Default.mergeOptions({
 });
 
 const MapComponent = () => {
-  const [stations, setStations] = useState(stationsDataStatic);
+  const [stations, setStations] = useState([]);
   const position = [45.7667, 9.7978]; // Albino, BG coordinates
   const zoomLevel = 11;
 
+  // Conversion factors from pixel coordinates to lat/lon (refined)
+  const a = -0.0005858;
+  const c = 46.7361;
+  const b = 0.0008430;
+  const d = 8.2705;
+
   useEffect(() => {
     const fetchData = async () => {
+      console.info('Fetching live station data from CML...');
       try {
-        const response = await fetch('http://www.centrometeolombardo.com/Moduli/refx.php?t=all');
+        const response = await fetch('/api/Moduli/refx.php?t=all');
         const text = await response.text();
 
-        // Extract datostazione array from the JS response
+        // Extract datostazione and coords arrays from the JS response
         const datostazioneMatch = text.match(/var datostazione = (\[.*?\]);/s);
-        if (datostazioneMatch) {
+        const coordsMatch = text.match(/var coords = (\[.*?\]);/s);
+
+        if (datostazioneMatch && coordsMatch) {
           // Note: using eval is generally risky, but here we're mimicking the original framework's behavior
           // for a prototype. A safer parser would be preferred for production.
           const liveData = eval(datostazioneMatch[1]);
-          const coordsMatch = text.match(/var coords = (\[.*?\]);/s);
-          const coordsData = coordsMatch ? eval(coordsMatch[1]) : [];
+          const coordsData = eval(coordsMatch[1]);
 
-          const updatedStations = stationsDataStatic.map(staticStation => {
-            // Find corresponding entry in live data
-            const index = coordsData.findIndex(c => c[0] === staticStation.id);
-            if (index !== -1 && liveData[index]) {
-              const d = liveData[index];
-              return {
-                ...staticStation,
-                weather: {
-                  status: d[0],
-                  date: d[2],
-                  time: d[3],
-                  currentTemp: parseFloat(d[4]),
-                  maxTemp: parseFloat(d[5]),
-                  minTemp: parseFloat(d[7]),
-                  humidity: parseFloat(d[9]),
-                  pressure: parseFloat(d[31]),
-                  windSpeed: parseFloat(d[33]),
-                  windDirection: d[34],
-                  precipitationDay: parseFloat(d[39]),
-                  precipitationYear: parseFloat(d[40])
-                }
-              };
+          const processedStations = coordsData.map((coordEntry, index) => {
+            const stationId = coordEntry[0];
+            const stationName = coordEntry[1];
+            const province = coordEntry[2];
+            const oldMapX = parseInt(coordEntry[3]);
+            const oldMapY = parseInt(coordEntry[4]);
+
+            // Filter out invalid stations (same logic as temp_extract.js)
+            if (oldMapX === -1 || oldMapY === -1 || (liveData[index] && liveData[index][0] === 'X')) {
+              return null;
             }
-            return staticStation;
-          });
-          setStations(updatedStations);
+
+            // Convert pixel coordinates to latitude and longitude
+            const lat = a * oldMapY + c;
+            const lng = b * oldMapX + d;
+
+            const stationData = liveData[index];
+            const weather = stationData ? {
+              status: stationData[0],
+              date: stationData[2],
+              time: stationData[3],
+              currentTemp: parseFloat(stationData[4]),
+              maxTemp: parseFloat(stationData[5]),
+              minTemp: parseFloat(stationData[7]),
+              humidity: parseFloat(stationData[9]),
+              pressure: parseFloat(stationData[31]),
+              windSpeed: parseFloat(stationData[33]),
+              windDirection: stationData[34],
+              precipitationDay: parseFloat(stationData[39]),
+              precipitationYear: parseFloat(stationData[40])
+            } : null;
+
+            return {
+              id: stationId,
+              name: stationName,
+              province: province,
+              latitude: lat,
+              longitude: lng,
+              weather: weather
+            };
+          }).filter(s => s !== null);
+
+          setStations(processedStations);
+          console.info(`Successfully updated ${processedStations.length} stations with live data.`);
         }
       } catch (error) {
         console.error('Error fetching live weather data:', error);

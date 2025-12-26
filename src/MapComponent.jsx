@@ -30,7 +30,7 @@ const MapComponent = () => {
     const fetchData = async () => {
       console.info('Fetching live station data from CML...');
       try {
-        const response = await fetch('/api/Moduli/refx.php?t=all');
+        const response = await fetch(`/api/Moduli/refx.php?t=all&r=${Date.now()}`);
         const text = await response.text();
 
         // Extract datostazione and coords arrays from the JS response
@@ -38,8 +38,6 @@ const MapComponent = () => {
         const coordsMatch = text.match(/var coords = (\[.*?\]);/s);
 
         if (datostazioneMatch && coordsMatch) {
-          // Note: using eval is generally risky, but here we're mimicking the original framework's behavior
-          // for a prototype. A safer parser would be preferred for production.
           const liveData = eval(datostazioneMatch[1]);
           const coordsData = eval(coordsMatch[1]);
 
@@ -50,7 +48,7 @@ const MapComponent = () => {
             const oldMapX = parseInt(coordEntry[3]);
             const oldMapY = parseInt(coordEntry[4]);
 
-            // Filter out invalid stations (same logic as temp_extract.js)
+            // Filter out invalid stations
             if (oldMapX === -1 || oldMapY === -1 || (liveData[index] && liveData[index][0] === 'X')) {
               return null;
             }
@@ -60,6 +58,7 @@ const MapComponent = () => {
             const lng = b * oldMapX + d;
 
             const stationData = liveData[index];
+            
             const weather = stationData ? {
               status: stationData[0],
               date: stationData[2],
@@ -69,9 +68,9 @@ const MapComponent = () => {
               minTemp: parseFloat(stationData[7]),
               humidity: parseFloat(stationData[9]),
               pressure: parseFloat(stationData[31]),
-              windSpeed: parseFloat(stationData[33]),
-              windDirection: stationData[34],
-              precipitationDay: parseFloat(stationData[39]),
+              windSpeed: parseFloat(stationData[25]),
+              windDirection: stationData[30],
+              precipitationDay: parseFloat(stationData[37]),
               precipitationYear: parseFloat(stationData[40])
             } : null;
 

@@ -65,19 +65,27 @@ const MapComponent = () => {
               time: stationData[3],
               currentTemp: parseFloat(stationData[4]),
               maxTemp: parseFloat(stationData[5]),
+              maxTempTime: stationData[6],
               minTemp: parseFloat(stationData[7]),
+              minTempTime: stationData[8],
               humidity: parseFloat(stationData[9]),
+              dewPoint: parseFloat(stationData[14]),
               pressure: parseFloat(stationData[31]),
               windSpeed: parseFloat(stationData[25]),
+              maxWindSpeed: parseFloat(stationData[26]),
+              maxWindSpeedTime: stationData[27],
               windDirection: stationData[30],
               precipitationDay: parseFloat(stationData[37]),
-              precipitationYear: parseFloat(stationData[40])
+              precipitationYear: parseFloat(stationData[40]),
+              rainRate: parseFloat(stationData[41]),
+              maxRainRate: parseFloat(stationData[42])
             } : null;
 
             return {
               id: stationId,
               name: stationName,
               province: province,
+              altitude: coordEntry[6], // Altitude from coords array
               latitude: lat,
               longitude: lng,
               weather: weather
@@ -115,19 +123,37 @@ const MapComponent = () => {
         return (
           <Marker key={station.id} position={[station.latitude, station.longitude]} icon={icon}>
             <Popup>
-              <h3>{station.name} ({station.province})</h3>
-              {station.weather && station.weather.currentTemp !== undefined ? (
-                <div>
-                  <p>Last Update: {station.weather.date} {station.weather.time}</p>
-                  <p>Temperature: {station.weather.currentTemp}°C</p>
-                  <p>Humidity: {station.weather.humidity}%</p>
-                  <p>Wind: {station.weather.windSpeed} km/h {station.weather.windDirection}</p>
-                  <p>Pressure: {station.weather.pressure} hPa</p>
-                  <p>Precipitation Today: {station.weather.precipitationDay} mm</p>
-                </div>
-              ) : (
-                <p>No weather data available.</p>
-              )}
+              <div className="station-popup">
+                <h3>{station.name} ({station.province})</h3>
+                {station.altitude && <p><strong>Altitude:</strong> {station.altitude} m</p>}
+                
+                {station.weather && station.weather.currentTemp !== undefined ? (
+                  <div className="weather-details">
+                    <p className="last-update">Last Update: {station.weather.date} {station.weather.time}</p>
+                    <hr />
+                    <p><strong>Temperature:</strong> {station.weather.currentTemp}°C</p>
+                    <p className="min-max">
+                      <span className="max">Max: {station.weather.maxTemp}°C ({station.weather.maxTempTime})</span><br />
+                      <span className="min">Min: {station.weather.minTemp}°C ({station.weather.minTempTime})</span>
+                    </p>
+                    <p><strong>Humidity:</strong> {station.weather.humidity}%</p>
+                    <p><strong>Dew Point:</strong> {station.weather.dewPoint}°C</p>
+                    <p><strong>Pressure:</strong> {station.weather.pressure} hPa</p>
+                    <p><strong>Wind:</strong> {station.weather.windSpeed} km/h {station.weather.windDirection}</p>
+                    {station.weather.maxWindSpeed > 0 && (
+                      <p className="gust">Gust: {station.weather.maxWindSpeed} km/h ({station.weather.maxWindSpeedTime})</p>
+                    )}
+                    <hr />
+                    <p><strong>Precipitation Today:</strong> {station.weather.precipitationDay} mm</p>
+                    {station.weather.rainRate > 0 && (
+                      <p><strong>Rain Rate:</strong> {station.weather.rainRate} mm/h (Max: {station.weather.maxRainRate})</p>
+                    )}
+                    <p><strong>Precipitation Year:</strong> {station.weather.precipitationYear} mm</p>
+                  </div>
+                ) : (
+                  <p>No weather data available.</p>
+                )}
+              </div>
             </Popup>
           </Marker>
         );

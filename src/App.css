@@ -33,3 +33,47 @@
   transform: scale(1.1);
   z-index: 1000;
 }
+
+.station-popup h3 {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  color: #333;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 4px;
+}
+
+.station-popup p {
+  margin: 4px 0;
+  font-size: 13px;
+}
+
+.weather-details hr {
+  border: 0;
+  border-top: 1px solid #eee;
+  margin: 8px 0;
+}
+
+.min-max {
+  font-size: 12px !important;
+  color: #666;
+}
+
+.min-max .max {
+  color: #d32f2f;
+}
+
+.min-max .min {
+  color: #1976d2;
+}
+
+.last-update {
+  font-style: italic;
+  font-size: 11px !important;
+  color: #888;
+  text-align: right;
+}
+
+.gust {
+  color: #f57c00;
+  font-weight: bold;
+}

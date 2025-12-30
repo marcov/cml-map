@@ -26,6 +26,22 @@ const MapComponent = () => {
   const b = 0.0008430;
   const d = 8.2705;
 
+  // Safer alternative to eval for parsing the specific JS array format from CML
+  const parseJSArray = (jsString) => {
+    try {
+      // 1. Replace single-quoted strings with double-quoted strings
+      // 2. Handle escaped single quotes within those strings
+      // 3. Ensure double quotes already present in strings are escaped
+      const jsonValid = jsString.replace(/'((?:[^'\\]|\\.)*)'/g, (match, p1) => {
+        return '"' + p1.replace(/"/g, '\\"').replace(/\\'/g, "'") + '"';
+      });
+      return JSON.parse(jsonValid);
+    } catch (e) {
+      console.error('Failed to parse station data string:', e);
+      return [];
+    }
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       console.info('Fetching live station data from CML...');
@@ -38,8 +54,8 @@ const MapComponent = () => {
         const coordsMatch = text.match(/var coords = (\[.*?\]);/s);
 
         if (datostazioneMatch && coordsMatch) {
-          const liveData = eval(datostazioneMatch[1]);
-          const coordsData = eval(coordsMatch[1]);
+          const liveData = parseJSArray(datostazioneMatch[1]);
+          const coordsData = parseJSArray(coordsMatch[1]);
 
           const processedStations = coordsData.map((coordEntry, index) => {
             const stationId = coordEntry[0];

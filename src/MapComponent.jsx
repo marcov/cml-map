@@ -20,7 +20,20 @@ const MapComponent = () => {
   const position = [45.7667, 9.7978]; // Albino, BG coordinates
   const zoomLevel = 11;
 
-  // Conversion factors from pixel coordinates to lat/lon (refined)
+  /**
+   * Coordinate conversion constants (Pixel -> Lat/Lon)
+   * Formula:
+   * Latitude  = (a * pixelY) + c
+   * Longitude = (b * pixelX) + d
+   * 
+   * Tweaking Positioning:
+   * - To move ALL stations North (up): Increase 'c'
+   * - To move ALL stations East (right): Increase 'd'
+   * 
+   * Tweaking Scale (Stretching):
+   * - Vertical stretch: Make 'a' more negative (e.g. -0.00058 -> -0.00060)
+   * - Horizontal stretch: Increase 'b' (e.g. 0.00084 -> 0.00090)
+   */
   const a = -0.0005858;
   const c = 46.7361;
   const b = 0.0008430;

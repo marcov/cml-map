@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import MarkerClusterGroup from 'react-leaflet-cluster';
 import 'leaflet/dist/leaflet.css';
 
 // Fix for default marker icon not appearing
@@ -140,53 +141,55 @@ const MapComponent = () => {
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
       />
-      {stations.map((station) => {
-        const temp = station.weather && station.weather.currentTemp !== null && !isNaN(station.weather.currentTemp) 
-          ? Math.round(station.weather.currentTemp) 
-          : '?';
-        const icon = L.divIcon({
-          className: 'temperature-marker',
-          html: `<span>${temp}</span>`,
-        });
+      <MarkerClusterGroup chunkedLoading maxClusterRadius={40}>
+        {stations.map((station) => {
+          const temp = station.weather && station.weather.currentTemp !== null && !isNaN(station.weather.currentTemp) 
+            ? Math.round(station.weather.currentTemp) 
+            : '?';
+          const icon = L.divIcon({
+            className: 'temperature-marker',
+            html: `<span>${temp}</span>`,
+          });
 
-        return (
-          <Marker key={station.id} position={[station.latitude, station.longitude]} icon={icon}>
-            <Popup>
-              <div className="station-popup">
-                <h3>{station.name} ({station.province})</h3>
-                {station.altitude && <p><strong>Altitude:</strong> {station.altitude} m</p>}
+          return (
+            <Marker key={station.id} position={[station.latitude, station.longitude]} icon={icon}>
+              <Popup>
+                <div className="station-popup">
+                  <h3>{station.name} ({station.province})</h3>
+                  {station.altitude && <p><strong>Altitude:</strong> {station.altitude} m</p>}
 
-                {station.weather && station.weather.currentTemp !== undefined ? (
-                  <div className="weather-details">
-                    <p className="last-update">Last Update: {station.weather.date} {station.weather.time}</p>
-                    <hr />
-                    <p><strong>Temperature:</strong> {station.weather.currentTemp}°C</p>
-                    <p className="min-max">
-                      <span className="max">Max: {station.weather.maxTemp}°C ({station.weather.maxTempTime})</span><br />
-                      <span className="min">Min: {station.weather.minTemp}°C ({station.weather.minTempTime})</span>
-                    </p>
-                    <p><strong>Humidity:</strong> {station.weather.humidity}%</p>
-                    <p><strong>Dew Point:</strong> {station.weather.dewPoint}°C</p>
-                    <p><strong>Pressure:</strong> {station.weather.pressure} hPa</p>
-                    <p><strong>Wind:</strong> {station.weather.windSpeed} km/h {station.weather.windDirection}</p>
-                    {station.weather.maxWindSpeed > 0 && (
-                      <p className="gust">Gust: {station.weather.maxWindSpeed} km/h ({station.weather.maxWindSpeedTime})</p>
-                    )}
-                    <hr />
-                    <p><strong>Precipitation Today:</strong> {station.weather.precipitationDay} mm</p>
-                    {station.weather.rainRate > 0 && (
-                      <p><strong>Rain Rate:</strong> {station.weather.rainRate} mm/h (Max: {station.weather.maxRainRate})</p>
-                    )}
-                    <p><strong>Precipitation Year:</strong> {station.weather.precipitationYear} mm</p>
-                  </div>
-                ) : (
-                  <p>No weather data available.</p>
-                )}
-              </div>
-            </Popup>
-          </Marker>
-        );
-      })}
+                  {station.weather && station.weather.currentTemp !== undefined ? (
+                    <div className="weather-details">
+                      <p className="last-update">Last Update: {station.weather.date} {station.weather.time}</p>
+                      <hr />
+                      <p><strong>Temperature:</strong> {station.weather.currentTemp}°C</p>
+                      <p className="min-max">
+                        <span className="max">Max: {station.weather.maxTemp}°C ({station.weather.maxTempTime})</span><br />
+                        <span className="min">Min: {station.weather.minTemp}°C ({station.weather.minTempTime})</span>
+                      </p>
+                      <p><strong>Humidity:</strong> {station.weather.humidity}%</p>
+                      <p><strong>Dew Point:</strong> {station.weather.dewPoint}°C</p>
+                      <p><strong>Pressure:</strong> {station.weather.pressure} hPa</p>
+                      <p><strong>Wind:</strong> {station.weather.windSpeed} km/h {station.weather.windDirection}</p>
+                      {station.weather.maxWindSpeed > 0 && (
+                        <p className="gust">Gust: {station.weather.maxWindSpeed} km/h ({station.weather.maxWindSpeedTime})</p>
+                      )}
+                      <hr />
+                      <p><strong>Precipitation Today:</strong> {station.weather.precipitationDay} mm</p>
+                      {station.weather.rainRate > 0 && (
+                        <p><strong>Rain Rate:</strong> {station.weather.rainRate} mm/h (Max: {station.weather.maxRainRate})</p>
+                      )}
+                      <p><strong>Precipitation Year:</strong> {station.weather.precipitationYear} mm</p>
+                    </div>
+                  ) : (
+                    <p>No weather data available.</p>
+                  )}
+                </div>
+              </Popup>
+            </Marker>
+          );
+        })}
+      </MarkerClusterGroup>
     </MapContainer>
   );
 };

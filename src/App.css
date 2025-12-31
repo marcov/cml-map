@@ -16,12 +16,12 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  width: 40px !important;
-  height: 40px !important;
-  background-color: rgba(255, 255, 255, 0.8);
-  border: 2px solid #3388ff;
-  border-radius: 50%;
-  color: #333;
+  width: 40px !important;   /* Fixed width */
+  height: 40px !important;  /* Fixed height */
+  background-color: rgba(255, 255, 255, 0.8); /* Semi-transparent white */
+  border: 2px solid #3388ff; /* The blue ring */
+  border-radius: 50%;        /* This makes it a circle! */
+  color: #333;               /* Temperature text color */
   font-size: 14px;
   font-weight: bold;
   text-align: center;

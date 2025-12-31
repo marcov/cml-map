@@ -18,18 +18,24 @@
   align-items: center;
   width: 40px !important;   /* Fixed width */
   height: 40px !important;  /* Fixed height */
+}
+
+.temperature-marker span {
+  display: block;
+  width: 36px;
+  height: 36px;
   background-color: rgba(255, 255, 255, 0.8); /* Semi-transparent white */
-  border: 2px solid #3388ff; /* The blue ring */
+  border: 3px solid #3388ff; /* Default ring color */
   border-radius: 50%;        /* This makes it a circle! */
   color: #333;               /* Temperature text color */
   font-size: 14px;
   font-weight: bold;
   text-align: center;
-  line-height: 36px;
+  line-height: 30px;         /* Vertically center text in the circle */
   transition: transform 0.2s;
 }
 
-.temperature-marker:hover {
+.temperature-marker span:hover {
   transform: scale(1.1);
   z-index: 1000;
 }

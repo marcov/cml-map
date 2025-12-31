@@ -26,7 +26,7 @@ const MapComponent = () => {
   const b = 0.0008430;
   const d = 8.2705;
 
-  // Safer alternative to eval for parsing the specific JS array format from CML
+  // Parse the specific JS array format from CML
   const parseJSArray = (jsString) => {
     try {
       // 1. Replace single-quoted strings with double-quoted strings
@@ -74,7 +74,7 @@ const MapComponent = () => {
             const lng = b * oldMapX + d;
 
             const stationData = liveData[index];
-            
+
             const weather = stationData ? {
               status: stationData[0],
               date: stationData[2],
@@ -142,7 +142,7 @@ const MapComponent = () => {
               <div className="station-popup">
                 <h3>{station.name} ({station.province})</h3>
                 {station.altitude && <p><strong>Altitude:</strong> {station.altitude} m</p>}
-                
+
                 {station.weather && station.weather.currentTemp !== undefined ? (
                   <div className="weather-details">
                     <p className="last-update">Last Update: {station.weather.date} {station.weather.time}</p>

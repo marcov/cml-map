@@ -10,9 +10,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       injectRegister: 'auto',
       manifest: {
-        name: 'Weather Station Map',
-        short_name: 'WeatherMap',
-        description: 'Interactive map of weather stations',
+        name: 'CML Map',
+        short_name: 'CML Map',
+        description: 'CML Realtime Map',
         theme_color: '#ffffff',
         // TODO: Add actual icons here (e.g., pwa-192x192.png, pwa-512x512.png)
         // icons: [

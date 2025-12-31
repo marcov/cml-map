@@ -1,0 +1,3 @@
+# Deployment on Cloudflare
+
+npx wrangler pages deploy dist

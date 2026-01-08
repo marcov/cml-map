@@ -40,7 +40,15 @@ const MapComponent = () => {
   const b = 0.0008430;
     const d = 8.2705;
   
-    const scala_colori = ['#eceeff','#e2e4ff','#c9d1ff','#aeceff','#96c7ff','#63d4fe','#1ae6fe','#00f8ec','#00ffb2','#23ff80','#74fc23','#a2ff00','#c6ff00','#eaff00','#fefe00','#fff000','#fdd82a','#ffc926','#ffb016','#ff9b15','#fe8839','#ff6c6c','#ff65aa','#f659dc','#ec50ff'];
+    // Darker, High-Readability Palette: Navy -> Slate -> Maroon -> Deep Purple
+  // Optimized for visibility against a white halo outline.
+  const scala_colori = [
+    '#000080', '#00008B', '#0000CD', '#0000FF', '#191970', // Dark Navys (Very Cold)
+    '#2F4F4F', '#4682B4', '#5F9EA0', '#708090', '#778899', // Slates/Steels (Cool/Neutral)
+    '#8B4513', '#A0522D', '#D2691E', '#B22222', '#A52A2A', // Browns/Rusts (Warm)
+    '#800000', '#8B0000', '#7B0000', '#660000', '#550000', // Deep Reds (Hot)
+    '#4B0082', '#483D8B', '#800080', '#8B008B', '#2E0854'  // Dark Purples (Very Hot)
+  ];
   
     // Parse the specific JS array format from CML
     const parseJSArray = (jsString) => {

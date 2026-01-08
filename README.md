@@ -1,11 +1,11 @@
 # Run
 
-npm run dev
+    npm run dev
 
 # Build
 
-npm run build
+    npm run build
 
 # Deployment on Cloudflare
 
-npx wrangler pages deploy dist
+    npx wrangler pages deploy dist

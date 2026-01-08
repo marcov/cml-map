@@ -38,172 +38,223 @@ const MapComponent = () => {
   const a = -0.0005858;
   const c = 46.7361;
   const b = 0.0008430;
-    const d = 8.2705;
-  
-    // Darker, High-Readability Palette: Navy -> Slate -> Maroon -> Deep Purple
-  // Optimized for visibility against a white halo outline.
-  const scala_colori = [
-    '#000080', '#00008B', '#0000CD', '#0000FF', '#191970', // Dark Navys (Very Cold)
-    '#2F4F4F', '#4682B4', '#5F9EA0', '#708090', '#778899', // Slates/Steels (Cool/Neutral)
-    '#8B4513', '#A0522D', '#D2691E', '#B22222', '#A52A2A', // Browns/Rusts (Warm)
-    '#800000', '#8B0000', '#7B0000', '#660000', '#550000', // Deep Reds (Hot)
-    '#4B0082', '#483D8B', '#800080', '#8B008B', '#2E0854'  // Dark Purples (Very Hot)
-  ];
-  
-    // Parse the specific JS array format from CML
-    const parseJSArray = (jsString) => {
+      const d = 8.2705;
+    
+      // Simple High-Contrast Scale (25 steps)
+      // Deep Blue -> Blue -> Teal -> Green -> Yellow -> Orange -> Red -> Dark Red
+      const scala_colori = [
+        '#000080', '#0000FF', '#0040FF', '#0080FF', '#00BFFF', // Blues
+        '#008080', '#00A0A0', '#00C0C0', '#20B2AA', '#3CB371', // Teals/Greens
+        '#556B2F', '#6B8E23', '#808000', '#B8860B', '#DAA520', // Olives/Golds
+        '#D2691E', '#E67E22', '#F39C12', '#FF8C00', '#FF4500', // Oranges
+        '#E74C3C', '#DC143C', '#C0392B', '#A93226', '#800000'  // Reds
+      ];
+    
+      // Helper: Maps a value from one range to another index [0-24]
+      const getTemperatureColor = (temp, min, max) => {
+        if (temp === null || isNaN(temp) || min === null || max === null) return '#888888';
+        if (max === min) return scala_colori[12]; // Neutral midpoint
+        
+        // Calculate index (0 to 24)
+        let idx = Math.floor(((temp - min) / (max - min)) * 24);
+        idx = Math.max(0, Math.min(24, idx)); // Clamp
+        
+        return scala_colori[idx];
+      };
+    
+      // Parse the specific JS array format from CML
+      const parseJSArray = (jsString) => {
+    try {
+      // 1. Replace single-quoted strings with double-quoted strings
+      // 2. Handle escaped single quotes within those strings
+      // 3. Ensure double quotes already present in strings are escaped
+      const jsonValid = jsString.replace(/'((?:[^'\\]|\\.)*)'/g, (match, p1) => {
+        return '"' + p1.replace(/"/g, '\\"').replace(/\\'/g, "'") + '"';
+      });
+      return JSON.parse(jsonValid);
+    } catch (e) {
+      console.error('Failed to parse station data string:', e);
+      return [];
+    }
+  };
+
+  const isDataRecent = (dateStr, timeStr) => {
+    if (!dateStr || !timeStr) return false;
+    try {
+      const [day, month, year] = dateStr.split('/').map(Number);
+      const [hours, minutes] = timeStr.split(':').map(Number);
+      const stationDate = new Date(year, month - 1, day, hours, minutes);
+      const now = new Date();
+      const diffMs = now - stationDate;
+      // 12 hours in milliseconds
+      return diffMs < 12 * 60 * 60 * 1000;
+    } catch (e) {
+      return false;
+    }
+  };
+
+  useEffect(() => {
+    const fetchData = async () => {
+      console.info('Fetching live station data from CML...');
       try {
-        // 1. Replace single-quoted strings with double-quoted strings
-        // 2. Handle escaped single quotes within those strings
-        // 3. Ensure double quotes already present in strings are escaped
-        const jsonValid = jsString.replace(/'((?:[^'\\]|\\.)*)'/g, (match, p1) => {
-          return '"' + p1.replace(/"/g, '\\"').replace(/\\'/g, "'") + '"';
-        });
-        return JSON.parse(jsonValid);
-      } catch (e) {
-        console.error('Failed to parse station data string:', e);
-        return [];
-      }
-    };
-  
-      const getTemperatureColor = (temp, meanTemp) => {
-        if (temp === null || isNaN(temp) || meanTemp === null) return '#3388ff';
+        const response = await fetch(`/api/Moduli/refx.php?t=all&r=${Date.now()}`);
+        const text = await response.text();
+
+        // Extract datostazione and coords arrays from the JS response
+        const datostazioneMatch = text.match(/var datostazione = (\[.*?\]);/s);
+        const coordsMatch = text.match(/var coords = (\[.*?\]);/s);
+
+                if (datostazioneMatch && coordsMatch) {
+
+                  const liveData = parseJSArray(datostazioneMatch[1]);
+
+                  const coordsData = parseJSArray(coordsMatch[1]);
+
         
-        const bar_zeroval = Math.round(meanTemp) - 12;
-        // For temperature, the steps are 1 degree each
-        let col_idx = 0;
-        const val = temp;
+
+                  // Filter data first to find actual min/max of visible stations
+
+                  const validWeatherData = liveData.filter(d => {
+
+                    if (d[0] === 'X' || d[4] === '' || isNaN(parseFloat(d[4]))) return false;
+
+                    return isDataRecent(d[2], d[3]);
+
+                  });
+
         
-        // Equivalent logic to GetBarStepValue and GetColorIdx for TEMP
-        for (let i = 1; i < 25; i++) {
-          if (val >= (bar_zeroval + i)) {
-            col_idx = i;
-          }
-        }
+
+                  const temps = validWeatherData.map(d => parseFloat(d[4]));
+
+                  const minTemp = temps.length > 0 ? Math.min(...temps) : null;
+
+                  const maxTemp = temps.length > 0 ? Math.max(...temps) : null;
+
         
-        return scala_colori[col_idx] || scala_colori[scala_colori.length - 1];
-      };
-    
-      const isDataRecent = (dateStr, timeStr) => {
-        if (!dateStr || !timeStr) return false;
-        try {
-          const [day, month, year] = dateStr.split('/').map(Number);
-          const [hours, minutes] = timeStr.split(':').map(Number);
-          const stationDate = new Date(year, month - 1, day, hours, minutes);
-          const now = new Date();
-          const diffMs = now - stationDate;
-          // 12 hours in milliseconds
-          return diffMs < 12 * 60 * 60 * 1000;
-        } catch (e) {
-          return false;
-        }
-      };
-    
-      useEffect(() => {
-        const fetchData = async () => {
-          console.info('Fetching live station data from CML...');
-          try {
-            const response = await fetch(`/api/Moduli/refx.php?t=all&r=${Date.now()}`);
-            const text = await response.text();
-    
-            // Extract datostazione and coords arrays from the JS response
-            const datostazioneMatch = text.match(/var datostazione = (\[.*?\]);/s);
-            const coordsMatch = text.match(/var coords = (\[.*?\]);/s);
-    
-            if (datostazioneMatch && coordsMatch) {
-              const liveData = parseJSArray(datostazioneMatch[1]);
-              const coordsData = parseJSArray(coordsMatch[1]);
-    
-              // Calculate mean temperature for coloring logic
-              let totalTemp = 0;
-              let count = 0;
-              liveData.forEach(d => {
-                if (d[0] === '0' && d[4] !== '' && !isNaN(parseFloat(d[4]))) {
-                  totalTemp += parseFloat(d[4]);
-                  count++;
-                }
-              });
-              
-              const rawMean = count > 0 ? totalTemp / count : null;
-              
-              // Refined mean logic from framework.js
-              let filteredTotalTemp = 0;
-              let filteredCount = 0;
-              if (rawMean !== null) {
-                liveData.forEach(d => {
-                  if (d[0] === '0' && d[4] !== '' && !isNaN(parseFloat(d[4]))) {
-                    const val = parseFloat(d[4]);
-                    if (Math.abs(val - rawMean) < 10) {
-                      filteredTotalTemp += val;
-                      filteredCount++;
+
+                  const processedStations = coordsData.map((coordEntry, index) => {
+
+                    const stationId = coordEntry[0];
+
+                    const stationName = coordEntry[1];
+
+                    const province = coordEntry[2];
+
+                    const oldMapX = parseInt(coordEntry[3]);
+
+                    const oldMapY = parseInt(coordEntry[4]);
+
+        
+
+                    // Filter out invalid stations (basic check)
+
+                    if (oldMapX === -1 || oldMapY === -1 || (liveData[index] && liveData[index][0] === 'X')) {
+
+                      return null;
+
                     }
-                  }
-                });
-              }
-              
-              const meanTemp = filteredCount > 0 ? filteredTotalTemp / filteredCount : rawMean;
-    
-              const processedStations = coordsData.map((coordEntry, index) => {
-                const stationId = coordEntry[0];
-                const stationName = coordEntry[1];
-                const province = coordEntry[2];
-                const oldMapX = parseInt(coordEntry[3]);
-                const oldMapY = parseInt(coordEntry[4]);
-    
-                // Filter out invalid stations (basic check)
-                if (oldMapX === -1 || oldMapY === -1 || (liveData[index] && liveData[index][0] === 'X')) {
-                  return null;
+
+        
+
+                    const stationData = liveData[index];
+
+                    if (!stationData) return null;
+
+        
+
+                    // Check for valid temperature and recency
+
+                    const currentTemp = parseFloat(stationData[4]);
+
+                    if (isNaN(currentTemp)) return null;
+
+        
+
+                    if (!isDataRecent(stationData[2], stationData[3])) return null;
+
+        
+
+                    // Convert pixel coordinates to latitude and longitude
+
+                    const lat = a * oldMapY + c;
+
+                    const lng = b * oldMapX + d;
+
+                    
+
+                    const weather = {
+
+                      status: stationData[0],
+
+                      date: stationData[2],
+
+                      time: stationData[3],
+
+                      currentTemp: currentTemp,
+
+                      maxTemp: parseFloat(stationData[5]),
+
+                      maxTempTime: stationData[6],
+
+                      minTemp: parseFloat(stationData[7]),
+
+                      minTempTime: stationData[8],
+
+                      humidity: parseFloat(stationData[9]),
+
+                      dewPoint: parseFloat(stationData[14]),
+
+                      pressure: parseFloat(stationData[31]),
+
+                      windSpeed: parseFloat(stationData[25]),
+
+                      maxWindSpeed: parseFloat(stationData[26]),
+
+                      maxWindSpeedTime: stationData[27],
+
+                      windDirection: stationData[30],
+
+                      precipitationDay: parseFloat(stationData[37]),
+
+                      precipitationYear: parseFloat(stationData[40]),
+
+                      rainRate: parseFloat(stationData[41]),
+
+                      maxRainRate: parseFloat(stationData[42])
+
+                    };
+
+        
+
+                    return {
+
+                      id: stationId,
+
+                      name: stationName,
+
+                      province: province,
+
+                      altitude: coordEntry[6], // Altitude from coords array
+
+                      latitude: lat,
+
+                      longitude: lng,
+
+                      weather: weather,
+
+                      color: getTemperatureColor(weather.currentTemp, minTemp, maxTemp)
+
+                    };
+
+                  }).filter(s => s !== null);
+
+        
+
+                  setStations(processedStations);
+
+                  console.info(`Updated ${processedStations.length} stations. Range: ${minTemp}°C to ${maxTemp}°C`);
+
                 }
-    
-                const stationData = liveData[index];
-                if (!stationData) return null;
-    
-                // Check for valid temperature and recency
-                const currentTemp = parseFloat(stationData[4]);
-                if (isNaN(currentTemp)) return null;
-    
-                if (!isDataRecent(stationData[2], stationData[3])) return null;
-    
-                // Convert pixel coordinates to latitude and longitude
-                const lat = a * oldMapY + c;
-                const lng = b * oldMapX + d;
-                
-                const weather = {
-                  status: stationData[0],
-                  date: stationData[2],
-                  time: stationData[3],
-                  currentTemp: currentTemp,
-                  maxTemp: parseFloat(stationData[5]),
-                  maxTempTime: stationData[6],
-                  minTemp: parseFloat(stationData[7]),
-                  minTempTime: stationData[8],
-                  humidity: parseFloat(stationData[9]),
-                  dewPoint: parseFloat(stationData[14]),
-                  pressure: parseFloat(stationData[31]),
-                  windSpeed: parseFloat(stationData[25]),
-                  maxWindSpeed: parseFloat(stationData[26]),
-                  maxWindSpeedTime: stationData[27],
-                  windDirection: stationData[30],
-                  precipitationDay: parseFloat(stationData[37]),
-                  precipitationYear: parseFloat(stationData[40]),
-                  rainRate: parseFloat(stationData[41]),
-                  maxRainRate: parseFloat(stationData[42])
-                };
-    
-                return {
-                  id: stationId,
-                  name: stationName,
-                  province: province,
-                  altitude: coordEntry[6], // Altitude from coords array
-                  latitude: lat,
-                  longitude: lng,
-                  weather: weather,
-                  color: getTemperatureColor(weather.currentTemp, meanTemp)
-                };
-              }).filter(s => s !== null);  
-            setStations(processedStations);
-            console.info(`Successfully updated ${processedStations.length} stations with live data. Mean Temp: ${meanTemp ? meanTemp.toFixed(1) : 'N/A'}°C`);
-          }
         } catch (error) {
           console.error('Error fetching live weather data:', error);
         }
@@ -220,20 +271,20 @@ const MapComponent = () => {
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
         />
-        <MarkerClusterGroup 
-        chunkedLoading 
-        maxClusterRadius={25} 
-        disableClusteringAtZoom={13}
-        spiderfyOnMaxZoom={true}
-      >
-          {stations.map((station) => {
-            const temp = station.weather && station.weather.currentTemp !== null && !isNaN(station.weather.currentTemp) 
-              ? Math.round(station.weather.currentTemp) 
-              : '?';
-                      const icon = L.divIcon({
-                        className: 'temperature-marker',
-                        html: `<span style="color: ${station.color}">${temp}</span>`,
-                      });          return (
+              <MarkerClusterGroup 
+                chunkedLoading 
+                maxClusterRadius={25} 
+                disableClusteringAtZoom={13}
+                spiderfyOnMaxZoom={true}
+              >
+                  {stations.map((station) => {
+                    const temp = station.weather && station.weather.currentTemp !== null && !isNaN(station.weather.currentTemp) 
+                      ? station.weather.currentTemp.toFixed(1)
+                      : '?';
+                    const icon = L.divIcon({
+                      className: 'temperature-marker',
+                      html: `<span style="color: ${station.color}">${temp}</span>`,
+                    });          return (
             <Marker key={station.id} position={[station.latitude, station.longitude]} icon={icon}>
               <Popup>
                 <div className="station-popup">

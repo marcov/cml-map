@@ -222,11 +222,10 @@ const MapComponent = () => {
             const temp = station.weather && station.weather.currentTemp !== null && !isNaN(station.weather.currentTemp) 
               ? Math.round(station.weather.currentTemp) 
               : '?';
-            const icon = L.divIcon({
-              className: 'temperature-marker',
-              html: `<span style="border-color: ${station.color}">${temp}</span>`,
-            });
-          return (
+                      const icon = L.divIcon({
+                        className: 'temperature-marker',
+                        html: `<span style="color: ${station.color}">${temp}</span>`,
+                      });          return (
             <Marker key={station.id} position={[station.latitude, station.longitude]} icon={icon}>
               <Popup>
                 <div className="station-popup">

@@ -191,7 +191,12 @@ const MapComponent = () => {
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
         />
-        <MarkerClusterGroup chunkedLoading maxClusterRadius={40}>
+        <MarkerClusterGroup 
+        chunkedLoading 
+        maxClusterRadius={25} 
+        disableClusteringAtZoom={13}
+        spiderfyOnMaxZoom={true}
+      >
           {stations.map((station) => {
             const temp = station.weather && station.weather.currentTemp !== null && !isNaN(station.weather.currentTemp) 
               ? Math.round(station.weather.currentTemp) 

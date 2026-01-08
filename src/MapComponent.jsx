@@ -36,10 +36,10 @@ const MapComponent = () => {
    * - Horizontal stretch: Increase 'b' (e.g. 0.00084 -> 0.00090)
    */
   const a = -0.0005858;
-  const c = 46.7361;
+  const c = 46.7392;
   const b = 0.0008430;
-      const d = 8.2705;
-    
+  const d = 8.2707;
+
       // Simple High-Contrast Scale (25 steps)
       // Deep Blue -> Blue -> Teal -> Green -> Yellow -> Orange -> Red -> Dark Red
       const scala_colori = [

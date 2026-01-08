@@ -58,120 +58,141 @@ const MapComponent = () => {
       }
     };
   
-    const getTemperatureColor = (temp, meanTemp) => {
-      if (temp === null || isNaN(temp) || meanTemp === null) return '#3388ff';
-      
-      const bar_zeroval = Math.round(meanTemp) - 12;
-      // For temperature, the steps are 1 degree each
-      let col_idx = 0;
-      const val = temp;
-      
-      // Equivalent logic to GetBarStepValue and GetColorIdx for TEMP
-      for (let i = 1; i < 25; i++) {
-        if (val >= (bar_zeroval + i)) {
-          col_idx = i;
+      const getTemperatureColor = (temp, meanTemp) => {
+        if (temp === null || isNaN(temp) || meanTemp === null) return '#3388ff';
+        
+        const bar_zeroval = Math.round(meanTemp) - 12;
+        // For temperature, the steps are 1 degree each
+        let col_idx = 0;
+        const val = temp;
+        
+        // Equivalent logic to GetBarStepValue and GetColorIdx for TEMP
+        for (let i = 1; i < 25; i++) {
+          if (val >= (bar_zeroval + i)) {
+            col_idx = i;
+          }
         }
-      }
-      
-      return scala_colori[col_idx] || scala_colori[scala_colori.length - 1];
-    };
-  
-    useEffect(() => {
-      const fetchData = async () => {
-        console.info('Fetching live station data from CML...');
+        
+        return scala_colori[col_idx] || scala_colori[scala_colori.length - 1];
+      };
+    
+      const isDataRecent = (dateStr, timeStr) => {
+        if (!dateStr || !timeStr) return false;
         try {
-          const response = await fetch(`/api/Moduli/refx.php?t=all&r=${Date.now()}`);
-          const text = await response.text();
-  
-          // Extract datostazione and coords arrays from the JS response
-          const datostazioneMatch = text.match(/var datostazione = (\[.*?\]);/s);
-          const coordsMatch = text.match(/var coords = (\[.*?\]);/s);
-  
-          if (datostazioneMatch && coordsMatch) {
-            const liveData = parseJSArray(datostazioneMatch[1]);
-            const coordsData = parseJSArray(coordsMatch[1]);
-  
-            // Calculate mean temperature for coloring logic
-            let totalTemp = 0;
-            let count = 0;
-            liveData.forEach(d => {
-              if (d[0] === '0' && d[4] !== '' && !isNaN(parseFloat(d[4]))) {
-                totalTemp += parseFloat(d[4]);
-                count++;
-              }
-            });
-            
-            const rawMean = count > 0 ? totalTemp / count : null;
-            
-            // Refined mean logic from framework.js
-            let filteredTotalTemp = 0;
-            let filteredCount = 0;
-            if (rawMean !== null) {
+          const [day, month, year] = dateStr.split('/').map(Number);
+          const [hours, minutes] = timeStr.split(':').map(Number);
+          const stationDate = new Date(year, month - 1, day, hours, minutes);
+          const now = new Date();
+          const diffMs = now - stationDate;
+          // 12 hours in milliseconds
+          return diffMs < 12 * 60 * 60 * 1000;
+        } catch (e) {
+          return false;
+        }
+      };
+    
+      useEffect(() => {
+        const fetchData = async () => {
+          console.info('Fetching live station data from CML...');
+          try {
+            const response = await fetch(`/api/Moduli/refx.php?t=all&r=${Date.now()}`);
+            const text = await response.text();
+    
+            // Extract datostazione and coords arrays from the JS response
+            const datostazioneMatch = text.match(/var datostazione = (\[.*?\]);/s);
+            const coordsMatch = text.match(/var coords = (\[.*?\]);/s);
+    
+            if (datostazioneMatch && coordsMatch) {
+              const liveData = parseJSArray(datostazioneMatch[1]);
+              const coordsData = parseJSArray(coordsMatch[1]);
+    
+              // Calculate mean temperature for coloring logic
+              let totalTemp = 0;
+              let count = 0;
               liveData.forEach(d => {
                 if (d[0] === '0' && d[4] !== '' && !isNaN(parseFloat(d[4]))) {
-                  const val = parseFloat(d[4]);
-                  if (Math.abs(val - rawMean) < 10) {
-                    filteredTotalTemp += val;
-                    filteredCount++;
-                  }
+                  totalTemp += parseFloat(d[4]);
+                  count++;
                 }
               });
-            }
-            
-            const meanTemp = filteredCount > 0 ? filteredTotalTemp / filteredCount : rawMean;
-  
-            const processedStations = coordsData.map((coordEntry, index) => {
-              const stationId = coordEntry[0];
-              const stationName = coordEntry[1];
-              const province = coordEntry[2];
-              const oldMapX = parseInt(coordEntry[3]);
-              const oldMapY = parseInt(coordEntry[4]);
-  
-              // Filter out invalid stations
-              if (oldMapX === -1 || oldMapY === -1 || (liveData[index] && liveData[index][0] === 'X')) {
-                return null;
-              }
-  
-              // Convert pixel coordinates to latitude and longitude
-              const lat = a * oldMapY + c;
-              const lng = b * oldMapX + d;
-  
-              const stationData = liveData[index];
               
-              const weather = stationData ? {
-                status: stationData[0],
-                date: stationData[2],
-                time: stationData[3],
-                currentTemp: parseFloat(stationData[4]),
-                maxTemp: parseFloat(stationData[5]),
-                maxTempTime: stationData[6],
-                minTemp: parseFloat(stationData[7]),
-                minTempTime: stationData[8],
-                humidity: parseFloat(stationData[9]),
-                dewPoint: parseFloat(stationData[14]),
-                pressure: parseFloat(stationData[31]),
-                windSpeed: parseFloat(stationData[25]),
-                maxWindSpeed: parseFloat(stationData[26]),
-                maxWindSpeedTime: stationData[27],
-                windDirection: stationData[30],
-                precipitationDay: parseFloat(stationData[37]),
-                precipitationYear: parseFloat(stationData[40]),
-                rainRate: parseFloat(stationData[41]),
-                maxRainRate: parseFloat(stationData[42])
-              } : null;
-  
-              return {
-                id: stationId,
-                name: stationName,
-                province: province,
-                altitude: coordEntry[6], // Altitude from coords array
-                latitude: lat,
-                longitude: lng,
-                weather: weather,
-                color: getTemperatureColor(weather ? weather.currentTemp : null, meanTemp)
-              };
-            }).filter(s => s !== null);
-  
+              const rawMean = count > 0 ? totalTemp / count : null;
+              
+              // Refined mean logic from framework.js
+              let filteredTotalTemp = 0;
+              let filteredCount = 0;
+              if (rawMean !== null) {
+                liveData.forEach(d => {
+                  if (d[0] === '0' && d[4] !== '' && !isNaN(parseFloat(d[4]))) {
+                    const val = parseFloat(d[4]);
+                    if (Math.abs(val - rawMean) < 10) {
+                      filteredTotalTemp += val;
+                      filteredCount++;
+                    }
+                  }
+                });
+              }
+              
+              const meanTemp = filteredCount > 0 ? filteredTotalTemp / filteredCount : rawMean;
+    
+              const processedStations = coordsData.map((coordEntry, index) => {
+                const stationId = coordEntry[0];
+                const stationName = coordEntry[1];
+                const province = coordEntry[2];
+                const oldMapX = parseInt(coordEntry[3]);
+                const oldMapY = parseInt(coordEntry[4]);
+    
+                // Filter out invalid stations (basic check)
+                if (oldMapX === -1 || oldMapY === -1 || (liveData[index] && liveData[index][0] === 'X')) {
+                  return null;
+                }
+    
+                const stationData = liveData[index];
+                if (!stationData) return null;
+    
+                // Check for valid temperature and recency
+                const currentTemp = parseFloat(stationData[4]);
+                if (isNaN(currentTemp)) return null;
+    
+                if (!isDataRecent(stationData[2], stationData[3])) return null;
+    
+                // Convert pixel coordinates to latitude and longitude
+                const lat = a * oldMapY + c;
+                const lng = b * oldMapX + d;
+                
+                const weather = {
+                  status: stationData[0],
+                  date: stationData[2],
+                  time: stationData[3],
+                  currentTemp: currentTemp,
+                  maxTemp: parseFloat(stationData[5]),
+                  maxTempTime: stationData[6],
+                  minTemp: parseFloat(stationData[7]),
+                  minTempTime: stationData[8],
+                  humidity: parseFloat(stationData[9]),
+                  dewPoint: parseFloat(stationData[14]),
+                  pressure: parseFloat(stationData[31]),
+                  windSpeed: parseFloat(stationData[25]),
+                  maxWindSpeed: parseFloat(stationData[26]),
+                  maxWindSpeedTime: stationData[27],
+                  windDirection: stationData[30],
+                  precipitationDay: parseFloat(stationData[37]),
+                  precipitationYear: parseFloat(stationData[40]),
+                  rainRate: parseFloat(stationData[41]),
+                  maxRainRate: parseFloat(stationData[42])
+                };
+    
+                return {
+                  id: stationId,
+                  name: stationName,
+                  province: province,
+                  altitude: coordEntry[6], // Altitude from coords array
+                  latitude: lat,
+                  longitude: lng,
+                  weather: weather,
+                  color: getTemperatureColor(weather.currentTemp, meanTemp)
+                };
+              }).filter(s => s !== null);  
             setStations(processedStations);
             console.info(`Successfully updated ${processedStations.length} stations with live data. Mean Temp: ${meanTemp ? meanTemp.toFixed(1) : 'N/A'}°C`);
           }

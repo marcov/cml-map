@@ -103,157 +103,82 @@ const MapComponent = () => {
         // Extract datostazione and coords arrays from the JS response
         const datostazioneMatch = text.match(/var datostazione = (\[.*?\]);/s);
         const coordsMatch = text.match(/var coords = (\[.*?\]);/s);
-
                 if (datostazioneMatch && coordsMatch) {
-
                   const liveData = parseJSArray(datostazioneMatch[1]);
-
                   const coordsData = parseJSArray(coordsMatch[1]);
-
-        
-
-                  // Filter data first to find actual min/max of visible stations
-
-                  const validWeatherData = liveData.filter(d => {
-
-                    if (d[0] === 'X' || d[4] === '' || isNaN(parseFloat(d[4]))) return false;
-
-                    return isDataRecent(d[2], d[3]);
-
-                  });
-
-        
-
-                  const temps = validWeatherData.map(d => parseFloat(d[4]));
-
-                  const minTemp = temps.length > 0 ? Math.min(...temps) : null;
-
-                  const maxTemp = temps.length > 0 ? Math.max(...temps) : null;
-
-        
-
-                  const processedStations = coordsData.map((coordEntry, index) => {
-
-                    const stationId = coordEntry[0];
-
-                    const stationName = coordEntry[1];
-
-                    const province = coordEntry[2];
-
-                    const oldMapX = parseInt(coordEntry[3]);
-
-                    const oldMapY = parseInt(coordEntry[4]);
-
-        
-
-                    // Filter out invalid stations (basic check)
-
-                    if (oldMapX === -1 || oldMapY === -1 || (liveData[index] && liveData[index][0] === 'X')) {
-
-                      return null;
-
-                    }
-
-        
-
-                    const stationData = liveData[index];
-
-                    if (!stationData) return null;
-
-        
-
-                    // Check for valid temperature and recency
-
-                    const currentTemp = parseFloat(stationData[4]);
-
-                    if (isNaN(currentTemp)) return null;
-
-        
-
-                    if (!isDataRecent(stationData[2], stationData[3])) return null;
-
-        
-
-                    // Convert pixel coordinates to latitude and longitude
-
-                    const lat = a * oldMapY + c;
-
-                    const lng = b * oldMapX + d;
-
-                    
-
-                    const weather = {
-
-                      status: stationData[0],
-
-                      date: stationData[2],
-
-                      time: stationData[3],
-
-                      currentTemp: currentTemp,
-
-                      maxTemp: parseFloat(stationData[5]),
-
-                      maxTempTime: stationData[6],
-
-                      minTemp: parseFloat(stationData[7]),
-
-                      minTempTime: stationData[8],
-
-                      humidity: parseFloat(stationData[9]),
-
-                      dewPoint: parseFloat(stationData[14]),
-
-                      pressure: parseFloat(stationData[31]),
-
-                      windSpeed: parseFloat(stationData[25]),
-
-                      maxWindSpeed: parseFloat(stationData[26]),
-
-                      maxWindSpeedTime: stationData[27],
-
-                      windDirection: stationData[30],
-
-                      precipitationDay: parseFloat(stationData[37]),
-
-                      precipitationYear: parseFloat(stationData[40]),
-
-                      rainRate: parseFloat(stationData[41]),
-
-                      maxRainRate: parseFloat(stationData[42])
-
-                    };
-
-        
-
-                    return {
-
-                      id: stationId,
-
-                      name: stationName,
-
-                      province: province,
-
-                      altitude: coordEntry[6], // Altitude from coords array
-
-                      latitude: lat,
-
-                      longitude: lng,
-
-                      weather: weather,
-
-                      color: getTemperatureColor(weather.currentTemp, minTemp, maxTemp)
-
-                    };
-
-                  }).filter(s => s !== null);
-
-        
-
-                  setStations(processedStations);
-
-                  console.info(`Updated ${processedStations.length} stations. Range: ${minTemp}°C to ${maxTemp}°C`);
-
+                            // Filter data first to find range of visible stations
+                            const validWeatherData = liveData.filter(d => {
+                              if (d[0] === 'X' || d[4] === '' || isNaN(parseFloat(d[4]))) return false;
+                              return isDataRecent(d[2], d[3]);
+                            });
+                            // Calculate Percentiles (P10 and P90) to ignore outliers
+                            const temps = validWeatherData.map(d => parseFloat(d[4])).sort((a, b) => a - b);
+                            let p10 = null;
+                            let p90 = null;
+                            if (temps.length > 0) {
+                              const p10Index = Math.floor(temps.length * 0.1);
+                              const p90Index = Math.floor(temps.length * 0.9);
+                              p10 = temps[p10Index];
+                              p90 = temps[p90Index];
+                              // Safety check: if range is too small (e.g. all stations same temp), widen it slightly
+                              if (p90 - p10 < 2) {
+                                p10 -= 1;
+                                p90 += 1;
+                              }
+                            }
+                            const processedStations = coordsData.map((coordEntry, index) => {
+                              const stationId = coordEntry[0];
+                              const stationName = coordEntry[1];
+                              const province = coordEntry[2];
+                              const oldMapX = parseInt(coordEntry[3]);
+                              const oldMapY = parseInt(coordEntry[4]);
+                              // Filter out invalid stations (basic check)
+                              if (oldMapX === -1 || oldMapY === -1 || (liveData[index] && liveData[index][0] === 'X')) {
+                                return null;
+                              }
+                              const stationData = liveData[index];
+                              if (!stationData) return null;
+                              // Check for valid temperature and recency
+                              const currentTemp = parseFloat(stationData[4]);
+                              if (isNaN(currentTemp)) return null;
+                              if (!isDataRecent(stationData[2], stationData[3])) return null;
+                              // Convert pixel coordinates to latitude and longitude
+                              const lat = a * oldMapY + c;
+                              const lng = b * oldMapX + d;
+                              const weather = {
+                                status: stationData[0],
+                                date: stationData[2],
+                                time: stationData[3],
+                                currentTemp: currentTemp,
+                                maxTemp: parseFloat(stationData[5]),
+                                maxTempTime: stationData[6],
+                                minTemp: parseFloat(stationData[7]),
+                                minTempTime: stationData[8],
+                                humidity: parseFloat(stationData[9]),
+                                dewPoint: parseFloat(stationData[14]),
+                                pressure: parseFloat(stationData[31]),
+                                windSpeed: parseFloat(stationData[25]),
+                                maxWindSpeed: parseFloat(stationData[26]),
+                                maxWindSpeedTime: stationData[27],
+                                windDirection: stationData[30],
+                                precipitationDay: parseFloat(stationData[37]),
+                                precipitationYear: parseFloat(stationData[40]),
+                                rainRate: parseFloat(stationData[41]),
+                                maxRainRate: parseFloat(stationData[42])
+                              };
+                              return {
+                                id: stationId,
+                                name: stationName,
+                                province: province,
+                                altitude: coordEntry[6], // Altitude from coords array
+                                latitude: lat,
+                                longitude: lng,
+                                weather: weather,
+                                color: getTemperatureColor(weather.currentTemp, p10, p90)
+                              };
+                            }).filter(s => s !== null);
+                            setStations(processedStations);
+                            console.info(`Updated ${processedStations.length} stations. P10: ${p10}°C, P90: ${p90}°C`);
                 }
         } catch (error) {
           console.error('Error fetching live weather data:', error);

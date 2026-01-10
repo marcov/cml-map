@@ -26,11 +26,11 @@ const MapComponent = () => {
    * Formula:
    * Latitude  = (a * pixelY) + c
    * Longitude = (b * pixelX) + d
-   * 
+   *
    * Tweaking Positioning:
    * - To move ALL stations North (up): Increase 'c'
    * - To move ALL stations East (right): Increase 'd'
-   * 
+   *
    * Tweaking Scale (Stretching):
    * - Vertical stretch: Make 'a' more negative (e.g. -0.00058 -> -0.00060)
    * - Horizontal stretch: Increase 'b' (e.g. 0.00084 -> 0.00090)
@@ -49,19 +49,19 @@ const MapComponent = () => {
         '#D2691E', '#E67E22', '#F39C12', '#FF8C00', '#FF4500', // Oranges
         '#E74C3C', '#DC143C', '#C0392B', '#A93226', '#800000'  // Reds
       ];
-    
+
       // Helper: Maps a value from one range to another index [0-24]
       const getTemperatureColor = (temp, min, max) => {
         if (temp === null || isNaN(temp) || min === null || max === null) return '#888888';
         if (max === min) return scala_colori[12]; // Neutral midpoint
-        
+
         // Calculate index (0 to 24)
         let idx = Math.floor(((temp - min) / (max - min)) * 24);
         idx = Math.max(0, Math.min(24, idx)); // Clamp
-        
+
         return scala_colori[idx];
       };
-    
+
       // Parse the specific JS array format from CML
       const parseJSArray = (jsString) => {
     try {
@@ -112,7 +112,7 @@ const MapComponent = () => {
                               return isDataRecent(d[2], d[3]);
                             });
                             // Calculate Percentile to ignore outliers at the tails
-                            const tailSize = 0.05;
+                            const tailSize = 0.025;
                             const temps = validWeatherData.map(d => parseFloat(d[4])).sort((a, b) => a - b);
                             let lowPercentileTemp = null;
                             let highPercentileTemp = null;
@@ -185,26 +185,26 @@ const MapComponent = () => {
           console.error('Error fetching live weather data:', error);
         }
       };
-  
+
       fetchData();
       const interval = setInterval(fetchData, 60000); // Update every minute
       return () => clearInterval(interval);
     }, []);
-  
+
     return (
       <MapContainer center={position} zoom={zoomLevel} style={{ height: '100%', width: '100%' }}>
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           attribution='&copy; <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
         />
-              <MarkerClusterGroup 
-                chunkedLoading 
-                maxClusterRadius={25} 
+              <MarkerClusterGroup
+                chunkedLoading
+                maxClusterRadius={25}
                 disableClusteringAtZoom={13}
                 spiderfyOnMaxZoom={true}
               >
                   {stations.map((station) => {
-                    const temp = station.weather && station.weather.currentTemp !== null && !isNaN(station.weather.currentTemp) 
+                    const temp = station.weather && station.weather.currentTemp !== null && !isNaN(station.weather.currentTemp)
                       ? station.weather.currentTemp.toFixed(1)
                       : '?';
                     const icon = L.divIcon({

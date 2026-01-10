@@ -111,19 +111,20 @@ const MapComponent = () => {
                               if (d[0] === 'X' || d[4] === '' || isNaN(parseFloat(d[4]))) return false;
                               return isDataRecent(d[2], d[3]);
                             });
-                            // Calculate Percentiles (P10 and P90) to ignore outliers
+                            // Calculate Percentile to ignore outliers at the tails
+                            const tailSize = 0.05;
                             const temps = validWeatherData.map(d => parseFloat(d[4])).sort((a, b) => a - b);
-                            let p10 = null;
-                            let p90 = null;
+                            let lowPercentileTemp = null;
+                            let highPercentileTemp = null;
                             if (temps.length > 0) {
-                              const p10Index = Math.floor(temps.length * 0.1);
-                              const p90Index = Math.floor(temps.length * 0.9);
-                              p10 = temps[p10Index];
-                              p90 = temps[p90Index];
+                              const lowPercentileIndex = Math.floor(temps.length * tailSize);
+                              const highPercentileIndex = Math.floor(temps.length * (1.00 - tailSize));
+                              lowPercentileTemp = temps[lowPercentileIndex];
+                              highPercentileTemp = temps[highPercentileIndex];
                               // Safety check: if range is too small (e.g. all stations same temp), widen it slightly
-                              if (p90 - p10 < 2) {
-                                p10 -= 1;
-                                p90 += 1;
+                              if (highPercentileTemp - lowPercentileTemp < 2) {
+                                lowPercentileTemp -= 1;
+                                highPercentileTemp += 1;
                               }
                             }
                             const processedStations = coordsData.map((coordEntry, index) => {
@@ -174,11 +175,11 @@ const MapComponent = () => {
                                 latitude: lat,
                                 longitude: lng,
                                 weather: weather,
-                                color: getTemperatureColor(weather.currentTemp, p10, p90)
+                                color: getTemperatureColor(weather.currentTemp, lowPercentileTemp, highPercentileTemp)
                               };
                             }).filter(s => s !== null);
                             setStations(processedStations);
-                            console.info(`Updated ${processedStations.length} stations. P10: ${p10}°C, P90: ${p90}°C`);
+                            console.info(`Updated ${processedStations.length} stations. lowPercentileTemp: ${lowPercentileTemp}°C, highPercentileTemp: ${highPercentileTemp}°C`);
                 }
         } catch (error) {
           console.error('Error fetching live weather data:', error);
